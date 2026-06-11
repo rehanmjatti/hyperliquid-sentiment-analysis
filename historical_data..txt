@@ -1,0 +1,33 @@
+import pandas as pd
+
+# 1. Read the provided CSV
+df = pd.read_csv("historical_data.csv")
+
+# 2. Extract macro structural variables
+total_records = len(df)
+unique_accounts = df['Account'].nunique()
+unique_coins = df['Coin'].nunique()
+total_volume = df['Size USD'].sum()
+total_pnl = df['Closed PnL'].sum()
+
+print("--- PROTOCOL SUMMARY ---")
+print(f"Total Rows: {total_records}")
+print(f"Unique Accounts: {unique_accounts}")
+print(f"Unique Coins: {unique_coins}")
+print(f"Total Volume (USD): ${total_volume:,.2f}")
+print(f"Total Net PnL (USD): ${total_pnl:,.2f}")
+
+# 3. Aggregate user address profiles
+account_summary = df.groupby('Account').agg(
+    Trades_Count=('Trade ID', 'count'),
+    Total_Volume_USD=('Size USD', 'sum'),
+    Net_PnL_USD=('Closed PnL', 'sum'),
+    Profitable_Trades=('Closed PnL', lambda x: (x > 0).sum())
+).reset_index()
+
+# Calculate precise wallet Win Rates
+account_summary['Win_Rate'] = (account_summary['Profitable_Trades'] / account_summary['Trades_Count']) * 100
+top_5_profitable = account_summary.sort_values(by='Net_PnL_USD', ascending=False).head(5)
+
+print("\n--- TOP PROFIT WALLETS ---")
+print(top_5_profitable[['Account', 'Trades_Count', 'Total_Volume_USD', 'Net_PnL_USD', 'Win_Rate']])
